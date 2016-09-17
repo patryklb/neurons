@@ -1,0 +1,39 @@
+# network of 2 IF with heterog Iapp
+
+
+p i0=0 deli=1.1 trefrac=0.25 dtr=0.1 taus=1.6 tauf=0.1
+p gsyn0=0.08 gsyn1=0.08 vsyn=-0.5
+p gel=0 bspike=0.1
+p vreset=0 iall=0.92 vtresh=1
+p iapp0=0.1 iapp1=0.1
+
+p istim=0 pon=10 deltat=0.03
+p inoise=0 ponoise=0 dnoise=100 iscale=1 rnoise=0 signoise=0.2 d=0.1
+p a=0.05 b=1.2
+
+p dd=0.1
+
+IAPP(t,istim)=heav(pon+deltat-t)*heav(t-pon)*istim
+
+IAPPP(t,pon,inoise,iscale)=heav(pon+iscale*flr(t/iscale)+d-t)*heav(t-pon-iscale*flr(t/iscale))*inoise*heav(ponoise+dnoise-t)*heav(t-ponoise)
+
+v[0]'=(-v[0]-gsyn0*delay(s[1],dd)*(v[0]-vsyn)+iall+iapp0)*heav(tt-(tr[0]+trefrac))+gel*((v[1]-v[0])+bspike*heav((tr[1]+dtr)-tt))+normal(rnoise,signoise)*IAPPP(t,ran(iscale),inoise,iscale)+IAPP(t,istim)
+v[1]'=(-v[1]-gsyn1*delay(s[0],dd)*(v[1]-vsyn)+iall+iapp1)*heav(tt-(tr[1]+trefrac))+gel*((v[0]-v[1])+bspike*heav((tr[0]+dtr)-tt))+normal(rnoise,signoise)*IAPPP(t,ran(iscale),inoise,iscale)
+tr[0..1]'=0
+tt'=1
+s[0..1]'=heav((tr[j]+dtr)-tt)*(1-s[j])/tauf-s[j]/taus
+
+
+#stot=sum(0,1)of(shift(d0,i')*shift(s0,i'))/2
+aux stot0=gsyn0*s[1]+b+gel*((v[1]-v[0])+bspike*heav((tr[1]+dtr)-tt))
+aux stot1=gsyn1*s[0]+b+a+gel*((v[0]-v[1])+bspike*heav((tr[0]+dtr)-tt))
+aux st=IAPPP(t,ran(iscale),inoise,iscale)*normal(rnoise,signoise)
+#dtot=sum(0,1)of(shift(d0,i'))/2
+#aux dtotx=dtot
+#iappx[0..1]=iapp([j])
+
+init v[0]=0 v[1]=0.2 tr[0]=-5 tr[1]=-5  s[0]=0.011 s[1]=0.011 tt=0
+global 1 {v[0..1]-vtresh} {v[j]=vreset;tr[j]=tt}
+@ METH=euler total=100, bounds=100000 back=white maxstor=20000 
+@ dt=0.01 xlo=0 ylo=0 yhi=1.5 xhi=20 delay=0.1
+d
